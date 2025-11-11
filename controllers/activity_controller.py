@@ -6,7 +6,7 @@ from typing import List, Optional
 from models.repository import repository
 from models.activity_model import DriverActivity, PassengerActivity
 from views.line_view import line_view
-
+import json
 
 class ActivityController:
     """活動控制器 - 處理活動查詢邏輯"""
@@ -36,13 +36,33 @@ class ActivityController:
         carousel = line_view.format_driver_carousel(activities)
         return carousel, None
     
+    def return_valid_driver_activity(self):
+        activities = activity_controller.get_all_driver_activities()
+        carousel, error = activity_controller.format_driver_activities_carousel(activities)
+        if error:
+            return None, error
+        else: 
+            if len(activities) != 0:
+                # 若有活動且人數未滿
+                if carousel != {
+                        "type": "carousel",
+                        "contents": []
+                    }:
+                    return json.dumps(carousel), None # 改成字串格式
+                # 若有活動但人數皆已滿
+                else:
+                    return 'full', None
+            else:
+                return 'empty', None
+
+
     def format_driver_activity_detail(self, index: int) -> str:
         """格式化司機活動詳細資訊"""
         activity = self.get_driver_activity(index)
         if not activity:
             return line_view.ERROR_ACTIVITY_NOT_FOUND
         
-        return line_view.format_driver_detail(activity)
+        return line_view.format_driver_detail_AsConfirmTemplate(activity)
     
     # ==================== 乘客活動相關 ====================
     
@@ -67,13 +87,32 @@ class ActivityController:
         carousel = line_view.format_passenger_carousel(activities)
         return carousel, None
     
+    def return_valid_passenger_activity(self):
+        activities = activity_controller.get_all_passenger_activities()
+        carousel, error = activity_controller.format_passenger_activities_carousel(activities)
+        if error:
+            return None, error
+        else: 
+            if len(activities) != 0:
+                # 若有活動且人數未滿
+                if carousel != {
+                        "type": "carousel",
+                        "contents": []
+                    }:
+                    return json.dumps(carousel) # 改成字串格式
+                # 若有活動但人數皆已滿
+                else:
+                    return 'full'
+            else:
+                return 'empty'
+
     def format_passenger_activity_detail(self, index: int) -> str:
         """格式化乘客活動詳細資訊"""
         activity = self.get_passenger_activity(index)
         if not activity:
             return line_view.ERROR_ACTIVITY_NOT_FOUND
         
-        return line_view.format_passenger_detail(activity)
+        return line_view.format_passenger_detail_AsConfirmTemplate(activity)
     
     # ==================== 使用者預約查詢 ====================
     

@@ -7,7 +7,9 @@ from linebot.v3.messaging import (
     CarouselTemplate,
     CarouselColumn,
     PostbackAction,
-    FlexContainer
+    FlexContainer,
+    ConfirmTemplate,
+    TemplateMessage
 )
 from models.activity_model import DriverActivity, PassengerActivity
 
@@ -28,7 +30,7 @@ class LineMessageView:
         )
     
     @staticmethod
-    def format_driver_carousel_column(activity: DriverActivity) -> CarouselColumn:
+    def format_driver_carousel_column(activity: DriverActivity, index: int) -> CarouselColumn:
         """格式化單個司機活動輪播欄位"""
         web_driver_data_case={
             "type": "bubble",
@@ -157,7 +159,7 @@ class LineMessageView:
                     "action": {
                     "type": "postback",
                     "label": "我要共乘（詳細資訊）",
-                    "data": f"driver_Num{activity.carpool_id}",
+                    "data": f"driver_Num{index}",
                     "displayText": f"{activity.departure}到{activity.destination}的共乘資訊"
                     },
                     "style": "secondary"
@@ -196,19 +198,19 @@ class LineMessageView:
         return web_driver_data_case
     
     @staticmethod
-    def format_driver_carousel(activities) -> CarouselTemplate:
+    def format_driver_carousel(activities: List[PassengerActivity]) -> CarouselTemplate:
         """格式化司機活動輪播"""
         line_flex_json = {
             "type": "carousel",
             "contents": []
         }   
         for activity in activities:
-            if DriverActivity.passenger_isfull(activity) == False and activity.isOutDate() == False or activity.isNowPost() == True:
-                line_flex_json['contents'].append(LineMessageView.format_driver_carousel_column(activity))
+            if activity.passenger_isfull() == False and activity.isOutDate() == False or activity.isNowPost() == True:
+                line_flex_json['contents'].append(LineMessageView.format_driver_carousel_column(activity, activity.index))
         return line_flex_json
     
     @staticmethod
-    def format_passenger_carousel_column(activity: PassengerActivity) -> CarouselColumn:
+    def format_passenger_carousel_column(activity: PassengerActivity, index: int) -> CarouselColumn:
         """格式化單個乘客活動輪播欄位"""
         web_passenger_data_case={
             "type": "bubble",
@@ -337,7 +339,7 @@ class LineMessageView:
                     "action": {
                     "type": "postback",
                     "label": "我要共乘∕當司機（詳細資訊）",
-                    "data": f"passenger_Num{activity.carpool_id}",
+                    "data": f"passenger_Num{index}",
                     "displayText": f"{activity.departure}到{activity.destination}的共乘資訊"
                     },
                     "style": "secondary"
@@ -386,52 +388,42 @@ class LineMessageView:
             "contents": []
         }   
         for activity in activities:
-            if PassengerActivity.passenger_isfull(activity) == False and activity.isOutDate() == False or activity.isNowPost() == True:
-                line_flex_json['contents'].append(LineMessageView.format_passenger_carousel_column(activity))
+            if activity.passenger_isfull == False and activity.isOutDate() == False or activity.isNowPost() == True:
+                line_flex_json['contents'].append(LineMessageView.format_passenger_carousel_column(activity, activity.index))
         return line_flex_json
     
     @staticmethod
-    def format_driver_detail(activity: DriverActivity) -> str:
+    def format_driver_detail_AsConfirmTemplate(activity: DriverActivity) -> str:
         """格式化司機活動詳細資訊"""
-        participant_names = '、'.join([p.name for p in activity.passengers]) if activity.passengers else '無'
-        
-        return (
-            f'📎共乘編號：{activity.carpool_id}\n'
-            f'📍出發地點：{activity.departure}\n'
-            f'📍目的地點：{activity.destination}\n'
-            f'🕒出發時間：\n{activity.time}\n'
-            f'⏳預估時程：{activity.format_time_duration()}\n'
-            f'#️⃣共乘上限：{activity.limit} 人\n'
-            f'✨發起人（司機）：\n{activity.organizer_name}\n'
-            f'🆔LineID：{activity.organizer_line_id}\n'
-            f'📱手機號碼：{activity.organizer_phone}\n'
-            f'💰費用分攤：{activity.cost}\n'
-            f'🛞交通工具：{activity.vehicle}\n'
-            f'❗️行車規範：\n{activity.rules}\n'
-            f'💬簡介：\n{activity.description}\n'
-            f'👥參與乘客：{participant_names}\n'
+        confirm_template = ConfirmTemplate(
+            text = f"📎共乘編號：{activity.carpool_id}\n📍出發地點：{activity.departure}\n📍目的地點：{activity.destination}\n🕒出發時間：\n{activity.time}\n⏳預估時程：{activity.format_time_duration()}\n#️⃣共乘上限：{activity.limit} 人\n✨發起人（司機）：\n{activity.organizer_name}\n💰費用分攤：{activity.cost}\n🛞交通工具：{activity.vehicle}\n❗️行車規範：\n{activity.rules}\n💬簡介：\n{activity.description}\n",
+            actions=[ #只能放兩個Action
+                PostbackAction(label='我想共乘！', text='我想共乘！', data=f'reserve_driver_AsPassenger_{activity.index}'),
+                PostbackAction(label='司機聯絡資訊', text='司機聯絡資訊', data = f'driver_info{activity.index}')
+            ]
         )
-    
+        template_message = TemplateMessage(
+            alt_text = f'從{activity.departure}到{activity.destination}的詳細資訊',
+            template = confirm_template
+        )
+        return template_message
+
     @staticmethod
-    def format_passenger_detail(activity: PassengerActivity) -> str:
+    def format_passenger_detail_AsConfirmTemplate(activity: DriverActivity) -> str:
         """格式化乘客活動詳細資訊"""
         driver_name = activity.driver.name if activity.driver else '無'
-        
-        return (
-            f'📎共乘編號：{activity.carpool_id}\n'
-            f'📍出發地點：{activity.departure}\n'
-            f'📍目的地點：{activity.destination}\n'
-            f'🕒出發時間：\n{activity.time}\n'
-            f'⏳預估時程：{activity.format_time_duration()}\n'
-            f'#️⃣共乘上限：{activity.limit} 人\n'
-            f'✨發起人（乘客）：\n{activity.organizer_name}\n'
-            f'🆔LineID：{activity.organizer_line_id}\n'
-            f'📱手機號碼：{activity.organizer_phone}\n'
-            f'🚗司機名稱：{driver_name}\n'
-            f'🛞交通工具：{activity.vehicle}\n'
-            f'❗️行車規範：\n{activity.rules}\n'
-            f'💬備註：\n{activity.description}\n'
+        confirm_template = ConfirmTemplate(
+            text = f"📎共乘編號：{activity.carpool_id}\n📍出發地點：{activity.departure}\n📍目的地點：{activity.destination}\n🕒出發時間：\n{activity.time}\n⏳預估時程：{activity.format_time_duration()}\n#️⃣共乘上限：{activity.limit} 人\n✨發起人（乘客）：\n{activity.organizer_name}\n🆔LineID：{activity.organizer_line_id}\n📱手機號碼：{activity.organizer_phone}\n🚗司機名稱：{driver_name}\n🛞交通工具：{activity.vehicle}\n❗️行車規範：\n{activity.rules}\n💬備註：\n{activity.description}\n",
+            actions=[ #一定只能放兩個Action
+                PostbackAction(label='我要共乘！', text='我要共乘！', data=f'reserve_passenger_AsPassenger_{activity.index}'),
+                PostbackAction(label='我想當司機！', text='我想當司機！', data=f'reserve_passenger_AsDriver_{activity.index}')   
+            ]
         )
+        template_message = TemplateMessage(
+            alt_text = f'從{activity.departure}到{activity.destination}的詳細資訊',
+            template = confirm_template
+        )
+        return template_message
     
     @staticmethod
     def format_reservation_success(activity, role: str) -> str:

@@ -4,7 +4,6 @@
 """
 import os
 import re
-import json
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
@@ -68,50 +67,26 @@ def handle_text_message(event):
     reply_token = event.reply_token
     user_id = event.source.user_id
     if text == '目前有哪些共乘（已有司機）？':
-        # 查詢所有司機活動    
-        activities = activity_controller.get_all_driver_activities()
-        carousel, error = activity_controller.format_driver_activities_carousel(activities)
-        if len(activities) != 0:
-            if error:
-                line_service.reply_text(reply_token, error)
-            # 若有活動且人數未滿
-            elif carousel != {
-                    "type": "carousel",
-                    "contents": []
-                }:
-                carousel_str = json.dumps(carousel) # 改成字串格式
-                line_service.reply_template(reply_token, '目前有的共乘（司機揪團）', carousel_str)
-            # 若有活動但人數皆已滿
-            else:
-                line_service.reply_text(reply_token, '目前司機發起之活動預約人數皆已滿，或是逾期。')
-        else:
+        activities_status, error = activity_controller.return_valid_driver_activity()
+        if error:
+            line_service.reply_text(reply_token, '伺服器維修中！')
+        elif activities_status == 'full':
+            line_service.reply_text(reply_token, '目前司機發起之活動預約人數皆已滿，或是逾期。')
+        elif activities_status == 'empty':
             line_service.reply_text(reply_token, '目前尚無司機發起共乘活動')
-    
+        else:    
+            line_service.reply_template(reply_token, '目前有的共乘（司機揪團）', activities_status)
+
     elif text == '目前有哪些共乘（揪團）？':
-        # 查詢所有司機活動    
-        activities = activity_controller.get_all_passenger_activities()
-        carousel, error = activity_controller.format_passenger_activities_carousel(activities)
-        if len(activities) != 0:
-            if error:
-                line_service.reply_text(reply_token, error)
-            # 若有活動且人數未滿
-            elif carousel != {
-                    "type": "carousel",
-                    "contents": []
-                }:
-                carousel_str = json.dumps(carousel) # 改成字串格式
-                line_service.reply_template(reply_token, '目前有的共乘（司機揪團）', carousel_str)
-            # 若有活動但人數皆已滿
-            else:
-                line_service.reply_text(reply_token, '目前司機發起之活動預約人數皆已滿，或是逾期。')
+        activities_status, error = activity_controller.return_valid_passenger_activity()
+        if error:
+            line_service.reply_text(reply_token, '伺服器維修中！')
+        elif activities_status == 'full':
+            line_service.reply_text(reply_token, '目前乘客發起之活動預約人數皆已滿，或是逾期。')
+        elif activities_status == 'empty':
+            line_service.reply_text(reply_token, '目前尚無乘客發起共乘活動')
         else:
-            line_service.reply_text(reply_token, '目前尚無司機發起共乘活動')
-
-    elif text == '我的預約':
-        activities = activity_controller.get_all_driver_activities()
-        carousel, error = activity_controller.format_driver_activities_carousel(activities)
-
-
+            line_service.reply_template(reply_token, '目前有的共乘（司機揪團）', activities_status)
 
 @line_handler.add(FollowEvent)
 def handle_follow(event):
@@ -128,65 +103,55 @@ def handle_postback(event):
     reply_token = event.reply_token
     user_id = event.source.user_id
     
-    try:
-        # 取得使用者資料
-        profile = line_service.get_user_profile(user_id)
-        user = User(user_id=user_id, name=profile.display_name)
-        
-        if data.startswith('reserve_driver_passenger_'):
-            # 預約司機活動（乘客身份）
-            index = int(data.replace('reserve_driver_passenger_', ''))
-            success, message, _ = reservation_controller.reserve_driver_as_passenger(index, user)
-            line_service.reply_text(reply_token, message)
-        
-        elif data.startswith('reserve_driver_driver_'):
-            # 預約司機活動（司機身份）
-            index = int(data.replace('reserve_driver_driver_', ''))
-            success, message, _ = reservation_controller.reserve_driver_as_driver(index, user)
-            line_service.reply_text(reply_token, message)
-        
-        elif data.startswith('reserve_passenger_passenger_'):
-            # 預約乘客活動（乘客身份）
-            index = int(data.replace('reserve_passenger_passenger_', ''))
-            success, message, _ = reservation_controller.reserve_passenger_as_passenger(index, user)
-            line_service.reply_text(reply_token, message)
-        
-        elif data.startswith('reserve_passenger_driver_'):
-            # 預約乘客活動（司機身份）
-            index = int(data.replace('reserve_passenger_driver_', ''))
-            success, message, _ = reservation_controller.reserve_passenger_as_driver(index, user)
-            line_service.reply_text(reply_token, message)
-        
-        elif data.startswith('detail_driver_'):
-            # 查看司機活動詳細資訊
-            index = int(data.replace('detail_driver_', ''))
-            message = activity_controller.format_driver_activity_detail(index)
-            line_service.reply_text(reply_token, message)
-        
-        elif data.startswith('detail_passenger_'):
-            # 查看乘客活動詳細資訊
-            index = int(data.replace('detail_passenger_', ''))
-            message = activity_controller.format_passenger_activity_detail(index)
-            line_service.reply_text(reply_token, message)
-        
-        elif data.startswith('cancel_driver_'):
-            # 取消司機活動預約
-            index = int(data.replace('cancel_driver_', ''))
-            success, message = reservation_controller.cancel_driver_reservation(index, user_id)
-            line_service.reply_text(reply_token, message)
-        
-        elif data.startswith('cancel_passenger_'):
-            # 取消乘客活動預約
-            index = int(data.replace('cancel_passenger_', ''))
-            success, message = reservation_controller.cancel_passenger_reservation(index, user_id)
-            line_service.reply_text(reply_token, message)
-        
-        else:
-            line_service.reply_text(reply_token, '未知的操作')
+    # 取得使用者資料
+    profile = line_service.get_user_profile(user_id)
+    user = User(user_id=user_id, name=profile.display_name)
+
+    if data.startswith('driver_Num'):
+        # 查看司機活動詳細資訊
+        index = int(data.replace('driver_Num', ''))
+        message = activity_controller.format_driver_activity_detail(index)
+        line_service.push_template(user_id, message)
+
+    elif data.startswith('passenger_Num'):
+        # 查看乘客活動詳細資訊
+        index = int(data.replace('passenger_Num', ''))
+        message = activity_controller.format_passenger_activity_detail(index)
+        line_service.push_template(user_id, message)
+
+    elif data.startswith('reserve_driver_AsPassenger_'):
+        # 預約司機活動（乘客身份）
+        index = int(data.replace('reserve_driver_AsPassenger_', ''))
+        success, message = reservation_controller.reserve_driver_as_passenger(index, user)
+        line_service.reply_text(reply_token, message)
     
-    except Exception as e:
-        app.logger.error(f"處理 Postback 時發生錯誤: {e}")
-        line_service.reply_text(reply_token, line_view.ERROR_LOADING_FAILED)
+    elif data.startswith('reserve_passenger_AsPassenger_'):
+        # 預約乘客活動（乘客身份）
+        index = int(data.replace('reserve_passenger_passenger_', ''))
+        success, message, _ = reservation_controller.reserve_passenger_as_passenger(index, user)
+        line_service.reply_text(reply_token, message)
+    
+    elif data.startswith('reserve_passenger_AsDriver_'):
+        # 預約乘客活動（司機身份）
+        index = int(data.replace('reserve_passenger_driver_', ''))
+        success, message, _ = reservation_controller.reserve_passenger_as_driver(index, user)
+        line_service.reply_text(reply_token, message)
+    
+    elif data.startswith('cancel_driver_'):
+        # 取消司機活動預約
+        index = int(data.replace('cancel_driver_', ''))
+        success, message = reservation_controller.cancel_driver_reservation(index, user_id)
+        line_service.reply_text(reply_token, message)
+    
+    elif data.startswith('cancel_passenger_'):
+        # 取消乘客活動預約
+        index = int(data.replace('cancel_passenger_', ''))
+        success, message = reservation_controller.cancel_passenger_reservation(index, user_id)
+        line_service.reply_text(reply_token, message)
+    
+    else:
+        line_service.reply_text(reply_token, '未知的操作')
+
 
 
 # ==================== 應用程式初始化 ====================

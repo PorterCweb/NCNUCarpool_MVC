@@ -16,71 +16,36 @@ class ReservationController:
     
     # ==================== 司機活動預約 ====================
     
-    def reserve_driver_as_passenger(self, index: int, user: User) -> Tuple[bool, str, Optional[object]]:
+    def reserve_driver_as_passenger(self, index: int, user: User) -> Tuple[bool, str]:
         """
         預約司機活動（乘客身份）
         
         返回: (success, message, activity)
         """
         # 刷新資料
-        self.repository.refresh_driver_activities()
+        self.repository.refresh_driver_activities(force = True)
         
         # 取得活動
         activity = self.repository.get_driver_activity_by_index(index)
         if not activity:
-            return False, line_view.ERROR_ACTIVITY_NOT_FOUND, None
-        
-        # 檢查是否已經是司機
-        if activity.is_user_driver(user.user_id):
-            return False, line_view.ERROR_ALREADY_RESERVED_AS_DRIVER, activity
+            return False, line_view.ERROR_ACTIVITY_NOT_FOUND
         
         # 檢查是否已經是乘客
         if activity.is_user_passenger(user.user_id):
-            return False, line_view.ERROR_ALREADY_RESERVED_AS_PASSENGER, activity
+            return False, line_view.ERROR_ALREADY_RESERVED_AS_PASSENGER
         
         # 檢查是否已滿
         if not activity.can_add_passenger():
-            return False, line_view.ERROR_ACTIVITY_FULL, activity
+            return False, line_view.ERROR_ACTIVITY_FULL
         
         # 執行預約
         success = self.repository.add_passenger_to_driver_activity(index, user)
         
         if success:
             message = line_view.format_reservation_success(activity, '乘客')
-            return True, message, activity
+            return True, message
         else:
-            return False, line_view.ERROR_LOADING_FAILED, activity
-    
-    def reserve_driver_as_driver(self, index: int, user: User) -> Tuple[bool, str, Optional[object]]:
-        """
-        預約司機活動（司機身份）
-        
-        返回: (success, message, activity)
-        """
-        # 刷新資料
-        self.repository.refresh_driver_activities()
-        
-        # 取得活動
-        activity = self.repository.get_driver_activity_by_index(index)
-        if not activity:
-            return False, line_view.ERROR_ACTIVITY_NOT_FOUND, None
-        
-        # 檢查是否已經是乘客
-        if activity.is_user_passenger(user.user_id):
-            return False, line_view.ERROR_ALREADY_RESERVED_AS_PASSENGER, activity
-        
-        # 檢查是否已有司機
-        if not activity.can_add_driver():
-            return False, line_view.ERROR_DRIVER_POSITION_TAKEN, activity
-        
-        # 執行預約
-        success = self.repository.add_driver_to_driver_activity(index, user)
-        
-        if success:
-            message = line_view.format_reservation_success(activity, '司機')
-            return True, message, activity
-        else:
-            return False, line_view.ERROR_LOADING_FAILED, activity
+            return False, line_view.ERROR_LOADING_FAILED
     
     def cancel_driver_reservation(self, index: int, user_id: str) -> Tuple[bool, str]:
         """

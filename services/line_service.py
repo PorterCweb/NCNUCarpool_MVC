@@ -70,7 +70,7 @@ class LineService:
                     messages=[FlexMessage(alt_text = alt_text, contents = FlexContainer.from_json(contents))]
                 )
             )
-    
+
     def push_text(self, to: str, text: str):
         """
         推送文字訊息
@@ -88,7 +88,7 @@ class LineService:
                 )
             )
     
-    def push_template(self, to: str, alt_text: str, template):
+    def push_template(self, to: str, template):
         """
         推送模板訊息
         
@@ -102,7 +102,7 @@ class LineService:
             line_bot_api.push_message(
                 PushMessageRequest(
                     to=to,
-                    messages=[TemplateMessage(alt_text=alt_text, template=template)]
+                    messages=[template]
                 )
             )
 
