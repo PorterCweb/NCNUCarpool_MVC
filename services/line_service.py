@@ -9,7 +9,6 @@ from linebot.v3.messaging import (
     ReplyMessageRequest,
     PushMessageRequest,
     TextMessage,
-    TemplateMessage,
     FlexMessage,
     FlexContainer
 )

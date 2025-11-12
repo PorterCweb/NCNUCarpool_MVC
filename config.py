@@ -25,6 +25,11 @@ SMTP_PORT = int(os.getenv('SMTP_PORT', 587))
 SMTP_USER = os.getenv('SMTP_USER')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 
+# Redis 設定
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_PORT = os.getenv('REDIS_PORT')
+REDIS_PASSWORD = os.getenv('dREDIS_PASSWORD')
+
 # 時間設定
 NOTIFICATION_HOURS_BEFORE = 3  # 提前幾小時通知
 CHECK_INTERVAL_SECONDS = 30  # 檢查間隔（秒）

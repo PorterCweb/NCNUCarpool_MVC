@@ -7,10 +7,8 @@ from linebot.v3.messaging import (
     CarouselTemplate,
     CarouselColumn,
     PostbackAction,
-    FlexContainer,
     ConfirmTemplate,
     TemplateMessage,
-    FlexMessage
 )
 from models.activity_model import DriverActivity, PassengerActivity
 

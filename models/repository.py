@@ -7,7 +7,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from tenacity import retry, stop_after_attempt, retry_if_exception_type, wait_exponential
 from models.activity_model import DriverActivity, PassengerActivity, ActivityFactory, User
-from config import get_credentials_dict, SHEET_URL, DriverColumns, PassengerColumns
+from config import get_credentials_dict, SHEET_URL, DriverColumns, PassengerColumns, REDIS_HOST, REDIS_PASSWORD, REDIS_PORT
 
 
 class ActivityRepository:
