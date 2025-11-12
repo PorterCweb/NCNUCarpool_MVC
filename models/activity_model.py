@@ -110,7 +110,7 @@ class DriverActivity(Activity):
     
     def can_add_passenger(self) -> bool:
         """檢查是否可以新增乘客"""
-        return not self.passenger_isfull
+        return not self.passenger_isfull()
     
 
 @dataclass
@@ -145,11 +145,15 @@ class PassengerActivity(Activity):
     
     def can_add_passenger(self) -> bool:
         """檢查是否可以新增乘客"""
-        return not self.is_full()
+        return not self.passenger_isfull()
     
     def can_add_driver(self) -> bool:
         """檢查是否可以新增司機"""
-        return not self.has_driver()
+        return not self.driver_isfull
+    
+    def can_add_driver(self) -> bool:
+        """檢查是否可以新增司機"""
+        return self.has_driver_return_name()
 
 
 class ActivityFactory:

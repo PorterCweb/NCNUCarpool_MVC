@@ -113,7 +113,7 @@ class ActivityRepository:
     def get_driver_activity_by_index(self, index: int) -> Optional[DriverActivity]:
         """根據索引取得司機活動"""
         data = self._driver_data_cache
-        if 0 < index < len(data) and len(data[index]) >= 21:
+        if 0 < index < len(data):
             return ActivityFactory.create_driver_activity(data[index], index)
         return None
     
@@ -203,28 +203,6 @@ class ActivityRepository:
         wait=wait_exponential(multiplier=1, min=4, max=60),
         retry=retry_if_exception_type(gspread.exceptions.APIError)
     )
-    def remove_driver_from_driver_activity(self, index: int) -> bool:
-        """從司機活動移除額外司機"""
-        try:
-            range_str = f'S{index + 1}:U{index + 1}'
-            self.driver_sheet.update([['', '']], range_str)
-            
-            # 同步更新快取（新增）
-            if index < len(self._driver_data_cache):
-                self._driver_data_cache[index][DriverColumns.DRIVER_NAMES] = ''
-                self._driver_data_cache[index][DriverColumns.DRIVER_IDS] = ''
-                print("✓ 快取已同步更新：移除司機")
-            
-            return True
-        except Exception as e:
-            print(f"移除司機失敗: {e}")
-            return False
-    
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=4, max=60),
-        retry=retry_if_exception_type(gspread.exceptions.APIError)
-    )
     def mark_driver_activity_notified(self, index: int) -> bool:
         """標記司機活動已通知"""
         try:
@@ -303,24 +281,16 @@ class ActivityRepository:
     def get_passenger_activity_by_index(self, index: int) -> Optional[PassengerActivity]:
         """根據索引取得乘客活動"""
         data = self._passenger_data_cache
-        if 0 < index < len(data) and len(data[index]) >= 21:
+        if 0 < index <= len(data):
             return ActivityFactory.create_passenger_activity(data[index], index)
         return None
     
-    def find_PassengerActivities_ByUser_AsPassenger(self, user_id: str) -> List[DriverActivity]:
+    def find_PassengerActivities_ByUser(self, user_id: str) -> List[DriverActivity]:
         """查詢使用者參與的司機活動"""
         activities = self.get_all_passenger_activities()
         return [
             activity for activity in activities
-            if activity.is_user_passenger(user_id)
-        ]
-    
-    def find_PassengerActivities_ByUser_AsDriver(self, user_id: str) -> List[DriverActivity]:
-        """查詢使用者參與的司機活動"""
-        activities = self.get_all_passenger_activities()
-        return [
-            activity for activity in activities
-            if activity.is_user_driver(user_id)
+            if activity.is_user_passenger(user_id) or activity.is_user_driver(user_id)
         ]
     
     @retry(
