@@ -45,19 +45,6 @@ def callback():
     
     return 'OK'
 
-
-@app.route("/")
-def index():
-    """首頁端點"""
-    return "共乘阿穿 LINE Bot (MVC架構) 運行中"
-
-
-@app.route("/health")
-def health():
-    """健康檢查端點"""
-    return {"status": "healthy", "architecture": "MVC"}, 200
-
-
 # ==================== LINE Bot 事件處理器 ====================
 
 @line_handler.add(MessageEvent, message=TextMessageContent)
@@ -195,8 +182,8 @@ def initialize_app():
     # 載入初始資料
     print("\n[1/2] 載入試算表資料...")
     from models.repository import repository
-    repository.refresh_driver_activities()
-    repository.refresh_passenger_activities()
+    repository.refresh_driver_activities(force = True)
+    repository.refresh_passenger_activities(force = True)
     
     driver_count = len(repository.get_all_driver_activities())
     passenger_count = len(repository.get_all_passenger_activities())

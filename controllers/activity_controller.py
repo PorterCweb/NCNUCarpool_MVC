@@ -23,11 +23,12 @@ class ActivityController:
     
     def get_driver_activity(self, index: int) -> Optional[DriverActivity]:
         """取得特定司機活動"""
+        self.repository.refresh_driver_activities()
         return self.repository.get_driver_activity_by_index(index)
     
     def find_user_DriverActivities(self, user_id: str) -> List[DriverActivity]:
         """查詢使用者參與的司機活動"""
-        self.repository.refresh_driver_activities(force=True)
+        self.repository.refresh_driver_activities()
         return self.repository.find_DriverActivities_ByUser_AsPassenger(user_id)
     
     def format_driver_activities_carousel(self, activities: List[DriverActivity]):
@@ -87,7 +88,7 @@ class ActivityController:
     
     def find_user_PassengerActivities(self, user_id: str) -> List[PassengerActivity]:
         """查詢使用者參與的乘客活動"""
-        self.repository.refresh_passenger_activities(force=True)
+        self.repository.refresh_passenger_activities()
         return self.repository.find_PassengerActivities_ByUser(user_id)
     
     def format_passenger_activities_carousel(self, activities: List[PassengerActivity]):

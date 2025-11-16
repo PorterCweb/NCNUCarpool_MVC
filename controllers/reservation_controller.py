@@ -20,10 +20,10 @@ class ReservationController:
         """
         預約司機活動（乘客身份）
         
-        返回: (success, message, activity)
+        返回: (success, message)
         """
         # 刷新資料
-        self.repository.refresh_driver_activities(force = True)
+        self.repository.refresh_driver_activities()
         
         # 取得活動
         activity = self.repository.get_driver_activity_by_index(index)
@@ -54,7 +54,7 @@ class ReservationController:
         返回: (success, message)
         """
         # 刷新資料
-        self.repository.refresh_driver_activities(force = True)
+        self.repository.refresh_driver_activities()
         
         # 取得活動
         activity = self.repository.get_driver_activity_by_index(index)
@@ -82,10 +82,10 @@ class ReservationController:
         """
         預約乘客活動（乘客身份）
         
-        返回: (success, message, activity)
+        返回: (success, message)
         """
         # 刷新資料
-        self.repository.refresh_passenger_activities(force = True)
+        self.repository.refresh_passenger_activities()
         
         # 取得活動
         activity = self.repository.get_passenger_activity_by_index(index)
@@ -121,7 +121,7 @@ class ReservationController:
         返回: (success, message, activity)
         """
         # 刷新資料
-        self.repository.refresh_passenger_activities(force = True)
+        self.repository.refresh_passenger_activities()
         
         # 取得活動
         activity = self.repository.get_passenger_activity_by_index(index)
@@ -152,7 +152,7 @@ class ReservationController:
         返回: (success, message)
         """
         # 刷新資料
-        self.repository.refresh_passenger_activities(force = True)
+        self.repository.refresh_passenger_activities()
         
         # 取得活動
         activity = self.repository.get_passenger_activity_by_index(index)

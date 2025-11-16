@@ -11,7 +11,7 @@ from config import get_credentials_dict, SHEET_URL, DriverColumns, PassengerColu
 
 
 class ActivityRepository:
-    """活動資料存取層 - 實現 Repository Pattern + 智能快取"""
+    """活動資料存取層"""
     
     def __init__(self):
         credentials_dict = get_credentials_dict()
@@ -48,6 +48,11 @@ class ActivityRepository:
     def refresh_driver_activities(self, force: bool = False) -> List[List[str]]:
         """
         重新載入司機表單資料（智能快取）
+        
+        ※  盡量減少 force 的使用，因為有設置 cache 因此可以減少
+            API的使用次數，也能提升運行效率，若要使用 force 則要
+            注意是否有把 cache 刷新掉（導致快取並沒有寫上因此要
+            等30秒才自動刷新）
         
         Args:
             force: 是否強制刷新
@@ -99,7 +104,7 @@ class ActivityRepository:
     
     def get_all_driver_activities(self) -> List[DriverActivity]:
         """取得所有司機活動"""
-        data = self._driver_data_cache
+        data = self.refresh_driver_activities()
         activities = []
         
         # 跳過標題列
@@ -152,11 +157,10 @@ class ActivityRepository:
             self.driver_sheet.update([[new_count, new_ids, new_names]], range_str)
             
             # 同步更新快取（新增）
-            if index < len(self._driver_data_cache):
-                self._driver_data_cache[index][DriverColumns.PASSENGER_COUNT] = str(new_count)
-                self._driver_data_cache[index][DriverColumns.PASSENGER_IDS] = new_ids
-                self._driver_data_cache[index][DriverColumns.PASSENGER_NAMES] = new_names
-                print("✓ 快取已同步更新：新增乘客")
+            self._driver_data_cache[index][DriverColumns.PASSENGER_COUNT] = str(new_count)
+            self._driver_data_cache[index][DriverColumns.PASSENGER_IDS] = new_ids
+            self._driver_data_cache[index][DriverColumns.PASSENGER_NAMES] = new_names
+            print("✓ 快取已同步更新：新增乘客")
             
             return True
         except Exception as e:
@@ -187,11 +191,10 @@ class ActivityRepository:
             self.driver_sheet.update([[new_count, new_ids, new_names]], range_str)
             
             # 同步更新快取（新增）
-            if index < len(self._driver_data_cache):
-                self._driver_data_cache[index][DriverColumns.PASSENGER_COUNT] = str(new_count)
-                self._driver_data_cache[index][DriverColumns.PASSENGER_IDS] = new_ids
-                self._driver_data_cache[index][DriverColumns.PASSENGER_NAMES] = new_names
-                print("✓ 快取已同步更新：移除乘客")
+            self._driver_data_cache[index][DriverColumns.PASSENGER_COUNT] = str(new_count)
+            self._driver_data_cache[index][DriverColumns.PASSENGER_IDS] = new_ids
+            self._driver_data_cache[index][DriverColumns.PASSENGER_NAMES] = new_names
+            print("✓ 快取已同步更新：移除乘客")
             
             return True
         except Exception as e:
@@ -210,9 +213,8 @@ class ActivityRepository:
             self.driver_sheet.update([['是']], cell)
             
             # 同步更新快取（新增）
-            if index < len(self._driver_data_cache):
-                self._driver_data_cache[index][DriverColumns.NOTIFIED] = '是'
-                print("✓ 快取已同步更新：標記已通知")
+            self._driver_data_cache[index][DriverColumns.NOTIFIED] = '是'
+            print("✓ 快取已同步更新：標記已通知")
             
             return True
         except Exception as e:
@@ -225,6 +227,11 @@ class ActivityRepository:
         """
         重新載入乘客表單資料（智能快取）
         
+        ※  盡量減少 force 的使用，因為有設置 cache 因此可以減少
+            API的使用次數，也能提升運行效率，若要使用 force 則要
+            注意是否有把 cache 刷新掉（導致快取並沒有寫上因此要
+            等30秒才自動刷新）
+
         Args:
             force: 是否強制刷新
         
@@ -320,11 +327,10 @@ class ActivityRepository:
             self.passenger_sheet.update([[new_count, new_ids, new_names]], range_str)
             
             # 同步更新快取（新增）
-            if index < len(self._passenger_data_cache):
-                self._passenger_data_cache[index][PassengerColumns.PASSENGER_COUNT] = str(new_count)
-                self._passenger_data_cache[index][PassengerColumns.PASSENGER_IDS] = new_ids
-                self._passenger_data_cache[index][PassengerColumns.PASSENGER_NAMES] = new_names
-                print("✓ 快取已同步更新：新增乘客")
+            self._passenger_data_cache[index][PassengerColumns.PASSENGER_COUNT] = str(new_count)
+            self._passenger_data_cache[index][PassengerColumns.PASSENGER_IDS] = new_ids
+            self._passenger_data_cache[index][PassengerColumns.PASSENGER_NAMES] = new_names
+            print("✓ 快取已同步更新：新增乘客")
             
             return True
         except Exception as e:
@@ -355,11 +361,10 @@ class ActivityRepository:
             self.passenger_sheet.update([[new_count, new_ids, new_names]], range_str)
             
             # 同步更新快取（新增）
-            if index < len(self._passenger_data_cache):
-                self._passenger_data_cache[index][PassengerColumns.PASSENGER_COUNT] = str(new_count)
-                self._passenger_data_cache[index][PassengerColumns.PASSENGER_IDS] = new_ids
-                self._passenger_data_cache[index][PassengerColumns.PASSENGER_NAMES] = new_names
-                print("✓ 快取已同步更新：移除乘客")
+            self._passenger_data_cache[index][PassengerColumns.PASSENGER_COUNT] = str(new_count)
+            self._passenger_data_cache[index][PassengerColumns.PASSENGER_IDS] = new_ids
+            self._passenger_data_cache[index][PassengerColumns.PASSENGER_NAMES] = new_names
+            print("✓ 快取已同步更新：移除乘客")
             
             return True
         except Exception as e:
@@ -383,10 +388,9 @@ class ActivityRepository:
             self.passenger_sheet.update([[user.name, user.user_id]], range_str)
             
             # 同步更新快取（新增）
-            if index < len(self._passenger_data_cache):
-                self._passenger_data_cache[index][PassengerColumns.DRIVER_NAME] = user.name
-                self._passenger_data_cache[index][PassengerColumns.DRIVER_ID] = user.user_id
-                print("✓ 快取已同步更新：新增司機")
+            self._passenger_data_cache[index][PassengerColumns.DRIVER_NAME] = user.name
+            self._passenger_data_cache[index][PassengerColumns.DRIVER_ID] = user.user_id
+            print("✓ 快取已同步更新：新增司機")
             
             return True
         except Exception as e:
@@ -405,10 +409,9 @@ class ActivityRepository:
             self.passenger_sheet.update([['', '']], range_str)
             
             # 同步更新快取（新增）
-            if index < len(self._passenger_data_cache):
-                self._passenger_data_cache[index][PassengerColumns.DRIVER_NAME] = ''
-                self._passenger_data_cache[index][PassengerColumns.DRIVER_ID] = ''
-                print("✓ 快取已同步更新：移除司機")
+            self._passenger_data_cache[index][PassengerColumns.DRIVER_NAME] = ''
+            self._passenger_data_cache[index][PassengerColumns.DRIVER_ID] = ''
+            print("✓ 快取已同步更新：移除司機")
             
             return True
         except Exception as e:
